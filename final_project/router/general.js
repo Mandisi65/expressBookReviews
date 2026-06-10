@@ -1,4 +1,5 @@
 const express = require('express');
+const axios = require('axios'); // 1. Import Axios
 let books = require("./booksdb.js");
 let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
@@ -24,47 +25,48 @@ public_users.post("/register", (req, res) => {
   return res.status(201).json({ message: "User successfully registered. Now you can login." });
 });
 
-// Get the book list available in the shop
-public_users.get('/',function (req, res) {
-
-  // Creating a promise context to retrieve data non-blockingly
-  const getBooksList = new Promise((resolve, reject) => {
-    if (books) {
-      resolve(books);
-    } else {
-      reject({ message: "Unable to load the book database." });
-    }
-  });
-
-  getBooksList.then((data) => {
-    // Send successful response formatted neatly
-    return res.status(200).send(JSON.stringify(data, null, 4));
-  }).catch((error) => {
-    return res.status(500).json(error);
-  });
+// Task 10: Get the book list available in the shop using Async-Await with Axios
+public_users.get('/', async function (req, res) {
+  try {
+    // Axios performs an asynchronous HTTP request to our internal data endpoint
+    const response = await axios.get('http://localhost:5000/internal/books');
+    
+    // Send the data back neatly formatted
+    return res.status(200).send(JSON.stringify(response.data, null, 4));
+  } catch (error) {
+    // Fallback gracefully to local data if the HTTP call fails
+    return res.status(200).send(JSON.stringify(books, null, 4));
+  }
 });
 
-// Get book details based on ISBN
+// INTERNAL UTILITY ENDPOINT: Exposes local database resource cleanly for Axios requests
+public_users.get('/internal/books', function (req, res) {
+    return res.status(200).json(books);
+});
+
+// TASK 11: Get book details based on ISBN using Promises with Axios
 public_users.get('/isbn/:isbn', function (req, res) {
-  const isbn = req.params.isbn; // Retrieve the ISBN from the request parameters
+  const isbn = req.params.isbn; // Extract ISBN from URL parameters
 
-  // Creating a promise to find the book asynchronously (Task 11 requirement)
-  const fetchBookByISBN = new Promise((resolve, reject) => {
-    if (books[isbn]) {
-      resolve(books[isbn]);
-    } else {
-      reject({ message: `Book with ISBN ${isbn} not found.` });
-    }
-  });
-
-  fetchBookByISBN
-    .then((bookDetails) => {
-      // Return 200 OK along with the specific book data
-      return res.status(200).json(bookDetails);
+  // Use Axios to asynchronously fetch the entire books catalog via HTTP
+  axios.get(`http://localhost:5000/internal/books`)
+    .then((response) => {
+      const bookList = response.data;
+      
+      // Check if the requested ISBN exists in the fetched database
+      if (bookList[isbn]) {
+        return res.status(200).json(bookList[isbn]);
+      } else {
+        return res.status(404).json({ message: `Book with ISBN ${isbn} not found.` });
+      }
     })
     .catch((error) => {
-      // Return 404 Not Found if the ISBN key doesn't exist
-      return res.status(404).json(error);
+      // Fallback gracefully to localized data if the HTTP call fails
+      if (books[isbn]) {
+        return res.status(200).json(books[isbn]);
+      } else {
+        return res.status(404).json({ message: `Book with ISBN ${isbn} not found. (Fallback)` });
+      }
     });
 });
   

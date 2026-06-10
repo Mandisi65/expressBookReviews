@@ -42,9 +42,55 @@ regd_users.post("/login", (req, res) => {
   }
 });
 
-// Add a book review
+// Add or modify a book review
 regd_users.put("/auth/review/:isbn", (req, res) => {
-  return res.status(300).json({message: "Yet to be implemented"});
+  const isbn = req.params.isbn;      
+  const reviewText = req.query.review;
+  const username = req.session.authorization.username;
+
+  // Error Check: Ensures a review text payload was supplied
+  if (!reviewText) {
+    return res.status(400).json({ message: "Review text parameter is required." });
+  }
+
+  // Check if the book exists in our database store
+  if (books[isbn]) {
+    // If the 'reviews' object doesn't have an entry for this username, it creates it.
+    // If it already exists, this assignment overwrites it.
+    books[isbn].reviews[username] = reviewText;
+
+    return res.status(200).json({ 
+      message: `Review successfully added/modified for ISBN ${isbn} by user '${username}'.` 
+    });
+  } else {
+    return res.status(404).json({ message: `Book with ISBN ${isbn} not found.` });
+  }
+});
+
+// Delete a book review
+regd_users.delete("/auth/review/:isbn", (req, res) => {
+  const isbn = req.params.isbn;                         // Extract the book ISBN from the URL parameters
+  const username = req.session.authorization.username; // Retrieve the username from the session context
+
+  // Check if the book exists in the database
+  if (books[isbn]) {
+    // Check if this specific user has posted a review for this book
+    if (books[isbn].reviews[username]) {
+      // Delete only this user's review entry from the nested object
+      delete books[isbn].reviews[username];
+      
+      return res.status(200).json({ 
+        message: `Review for ISBN ${isbn} posted by user '${username}' has been successfully deleted.` 
+      });
+    } else {
+      // Return an informative message if the user doesn't have an active review on this book
+      return res.status(404).json({ 
+        message: `No review found for ISBN ${isbn} associated with user '${username}'.` 
+      });
+    }
+  } else {
+    return res.status(404).json({ message: `Book with ISBN ${isbn} not found.` });
+  }
 });
 
 module.exports.authenticated = regd_users;

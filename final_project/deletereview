@@ -1,0 +1,2 @@
+curl.exe -b cookiejar.txt -X DELETE "http://localhost:5000/customer/auth/review/1"
+{"message":"Review for ISBN 1 posted by user 'mandisi' has been successfully deleted."}
