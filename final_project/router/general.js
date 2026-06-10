@@ -69,36 +69,44 @@ public_users.get('/isbn/:isbn', function (req, res) {
       }
     });
 });
-  
-// Get book details based on author
-public_users.get('/author/:author', function (req, res) {
-  const authorName = req.params.author.toLowerCase(); // Convert parameter to lowercase for case-insensitive matching
 
-  // Creating a promise context to filter entries non-blockingly (Task 12 requirement)
-  const fetchBooksByAuthor = new Promise((resolve, reject) => {
-    const keys = Object.keys(books);
+// TASK 12: Get book details based on Author using Async-Await with Axios
+public_users.get('/author/:author', async function (req, res) {
+  const targetAuthor = req.params.author.toLowerCase(); // Case-insensitive matching
+  
+  try {
+    // Asynchronously fetch the entire books catalog via HTTP
+    const response = await axios.get('http://localhost:5000/internal/books');
+    const bookList = response.data;
     const matchingBooks = {};
 
-    keys.forEach((key) => {
-      if (books[key].author.toLowerCase() === authorName) {
+    // Filter through the keys to match the author name
+    Object.keys(bookList).forEach((key) => {
+      if (bookList[key].author.toLowerCase() === targetAuthor) {
+        matchingBooks[key] = bookList[key];
+      }
+    });
+
+    if (Object.keys(matchingBooks).length > 0) {
+      return res.status(200).json(matchingBooks);
+    } else {
+      return res.status(404).json({ message: `No books found matching author: ${req.params.author}` });
+    }
+  } catch (error) {
+    // Fallback block using local data context if the HTTP request fails
+    const matchingBooks = {};
+    Object.keys(books).forEach((key) => {
+      if (books[key].author.toLowerCase() === targetAuthor) {
         matchingBooks[key] = books[key];
       }
     });
 
     if (Object.keys(matchingBooks).length > 0) {
-      resolve(matchingBooks);
+      return res.status(200).json(matchingBooks);
     } else {
-      reject({ message: `No books found matching author: ${req.params.author}` });
+      return res.status(404).json({ message: `No books found matching author: ${req.params.author} (Fallback)` });
     }
-  });
-
-  fetchBooksByAuthor
-    .then((filteredBooks) => {
-      return res.status(200).json(filteredBooks);
-    })
-    .catch((error) => {
-      return res.status(404).json(error);
-    });
+  }
 });
 
 // Get all books based on title
