@@ -109,34 +109,43 @@ public_users.get('/author/:author', async function (req, res) {
   }
 });
 
-// Get all books based on title
+// TASK 13: Get all books based on Title using Promises with Axios
 public_users.get('/title/:title', function (req, res) {
-  const titleName = req.params.title.toLowerCase(); // Convert parameter to lowercase for case-insensitive matching
+  const targetTitle = req.params.title.toLowerCase(); // Case-insensitive matching
 
-  // Creating a promise context to filter entries non-blockingly (Task 13 requirement)
-  const fetchBooksByTitle = new Promise((resolve, reject) => {
-    const keys = Object.keys(books);
-    const matchingBooks = {};
+  // Fire an asynchronous GET request to pull the entire books database object
+  axios.get('http://localhost:5000/internal/books')
+    .then((response) => {
+      const bookList = response.data;
+      const matchingBooks = {};
 
-    keys.forEach((key) => {
-      if (books[key].title.toLowerCase() === titleName) {
-        matchingBooks[key] = books[key];
+      // Parse the keys and build a payload of any matching title profiles
+      Object.keys(bookList).forEach((key) => {
+        if (bookList[key].title.toLowerCase() === targetTitle) {
+          matchingBooks[key] = bookList[key];
+        }
+      });
+
+      if (Object.keys(matchingBooks).length > 0) {
+        return res.status(200).json(matchingBooks);
+      } else {
+        return res.status(404).json({ message: `No books found matching title: ${req.params.title}` });
       }
-    });
-
-    if (Object.keys(matchingBooks).length > 0) {
-      resolve(matchingBooks);
-    } else {
-      reject({ message: `No books found matching title: ${req.params.title}` });
-    }
-  });
-
-  fetchBooksByTitle
-    .then((filteredBooks) => {
-      return res.status(200).json(filteredBooks);
     })
     .catch((error) => {
-      return res.status(404).json(error);
+      // Local fallback loop context in case the active HTTP thread times out
+      const matchingBooks = {};
+      Object.keys(books).forEach((key) => {
+        if (books[key].title.toLowerCase() === targetTitle) {
+          matchingBooks[key] = books[key];
+        }
+      });
+
+      if (Object.keys(matchingBooks).length > 0) {
+        return res.status(200).json(matchingBooks);
+      } else {
+        return res.status(404).json({ message: `No books found matching title: ${req.params.title} (Fallback)` });
+      }
     });
 });
 
