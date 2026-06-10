@@ -1,2 +1,2 @@
-curl.exe -X POST -H "Content-Type: application/json" -d "{\`"username\`":\`"mandisi\`",\`"password\`":\`"password123\`"}" http://localhost:5000/register
-{"message":"User successfully registered. Now you can login."}
+curl.exe -c cookiejar.txt -X POST -H "Content-Type: application/json" -d "{\`"username\`":\`"mandisi\`",\`"password\`":\`"password123\`"}" http://localhost:5000/customer/login
+{"message":"User successfully logged in"}
