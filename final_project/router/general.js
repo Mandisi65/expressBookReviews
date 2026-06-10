@@ -87,9 +87,34 @@ public_users.get('/author/:author', function (req, res) {
 });
 
 // Get all books based on title
-public_users.get('/title/:title',function (req, res) {
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
+public_users.get('/title/:title', function (req, res) {
+  const titleName = req.params.title.toLowerCase(); // Convert parameter to lowercase for case-insensitive matching
+
+  // Creating a promise context to filter entries non-blockingly (Task 13 requirement)
+  const fetchBooksByTitle = new Promise((resolve, reject) => {
+    const keys = Object.keys(books);
+    const matchingBooks = {};
+
+    keys.forEach((key) => {
+      if (books[key].title.toLowerCase() === titleName) {
+        matchingBooks[key] = books[key];
+      }
+    });
+
+    if (Object.keys(matchingBooks).length > 0) {
+      resolve(matchingBooks);
+    } else {
+      reject({ message: `No books found matching title: ${req.params.title}` });
+    }
+  });
+
+  fetchBooksByTitle
+    .then((filteredBooks) => {
+      return res.status(200).json(filteredBooks);
+    })
+    .catch((error) => {
+      return res.status(404).json(error);
+    });
 });
 
 //  Get book review
